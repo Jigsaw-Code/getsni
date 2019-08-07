@@ -30,3 +30,40 @@ func BenchmarkGetSNI(b *testing.B) {
 		GetSNI(clienthello)
 	}
 }
+
+func TestGetSNIShort(t *testing.T) {
+	clienthello, err := hex.DecodeString(HEX)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	// Only provide the first 64 bytes.  This segment doesn't include the SNI,
+	// so GetSNI should return an error.
+	sni, err := GetSNI(clienthello[:64])
+	if err == nil {
+		t.Error("Expected failure")
+	}
+	if sni != "" {
+		t.Errorf("Expected empty SNI: %s", sni)
+	}
+}
+
+func TestGetSNILong(t *testing.T) {
+	clienthello, err := hex.DecodeString(HEX)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	// Append 100 bytes containing arbitrary data.
+	// GetSNI should ignore the extra data.
+	extra := [100]byte{17}
+	clienthello = append(clienthello, extra[:]...)
+	sni, err := GetSNI(clienthello)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if sni != "www.wikipedia.org" {
+		t.Errorf("Wrong SNI: %s", sni)
+	}
+}
